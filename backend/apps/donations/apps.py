@@ -6,3 +6,6 @@ class DonationsConfig(AppConfig):
     name = 'apps.donations'
     verbose_name = 'Donations'
 
+    def ready(self):
+        import apps.donations.signals
+

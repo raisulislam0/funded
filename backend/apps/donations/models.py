@@ -72,6 +72,11 @@ class Donation(TimeStampedModel):
         return f"{donor_display} - {self.amount} BDT to {self.campaign.title}"
     
     def save(self, *args, **kwargs):
+        # Auto-generate transaction_id if not provided
+        if not self.transaction_id:
+            from apps.core.utils import generate_transaction_id
+            self.transaction_id = generate_transaction_id('DON')
+
         # Calculate net amount
         if not self.net_amount:
             self.net_amount = self.amount - self.platform_fee
