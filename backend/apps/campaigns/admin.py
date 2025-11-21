@@ -30,14 +30,14 @@ class CampaignImageInline(admin.TabularInline):
 @admin.register(Campaign)
 class CampaignAdmin(admin.ModelAdmin):
     """Admin for campaigns."""
-    
-    list_display = ['title', 'creator', 'category', 'status', 'goal_amount', 'current_amount', 'progress_percentage', 'created_at']
+
+    list_display = ['title', 'creator', 'category', 'status', 'goal_amount', 'current_amount', 'withdrawn_amount', 'available_balance', 'progress_percentage', 'created_at']
     list_filter = ['status', 'category', 'is_featured', 'created_at']
     search_fields = ['title', 'creator__email', 'description']
     prepopulated_fields = {'slug': ('title',)}
-    readonly_fields = ['current_amount', 'total_donors', 'total_donations', 'created_at', 'updated_at']
+    readonly_fields = ['current_amount', 'withdrawn_amount', 'net_amount', 'available_balance', 'total_donors', 'total_donations', 'created_at', 'updated_at']
     inlines = [CampaignDocumentInline, CampaignImageInline]
-    
+
     fieldsets = (
         ('Basic Information', {
             'fields': ('creator', 'title', 'slug', 'category')
@@ -49,7 +49,7 @@ class CampaignAdmin(admin.ModelAdmin):
             'fields': ('cover_image', 'video_url')
         }),
         ('Funding', {
-            'fields': ('goal_amount', 'current_amount', 'currency')
+            'fields': ('goal_amount', 'current_amount', 'net_amount', 'withdrawn_amount', 'available_balance', 'currency')
         }),
         ('Timeline', {
             'fields': ('start_date', 'end_date')

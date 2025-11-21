@@ -76,3 +76,35 @@ class Withdrawal(TimeStampedModel):
     def __str__(self):
         return f"{self.creator.email} - {self.amount} BDT - {self.status}"
 
+    def clean(self):
+        """Validate withdrawal before saving."""
+        from django.core.exceptions import ValidationError
+
+        # Validate creator is campaign owner
+        if self.campaign.creator != self.creator:
+            raise ValidationError({
+                'creator': 'Only the campaign creator can request withdrawals.'
+            })
+
+        # Validate withdrawal amount
+        can_withdraw, error_msg = self.campaign.can_withdraw(self.amount)
+        if not can_withdraw:
+            raise ValidationError({
+                'amount': error_msg
+            })
+
+    def save(self, *args, **kwargs):
+        """Override save to run validation."""
+        # Only validate on creation (not on updates unless amount/campaign changed)
+        # This prevents validation errors when just changing status
+        update_fields = kwargs.get('update_fields', [])
+
+        # Validate on creation
+        if not self.pk:
+            self.full_clean()
+        # Or if amount or campaign is being updated
+        elif update_fields and ('amount' in update_fields or 'campaign' in update_fields):
+            self.full_clean()
+
+        super().save(*args, **kwargs)
+

@@ -6,3 +6,6 @@ class WithdrawalsConfig(AppConfig):
     name = 'apps.withdrawals'
     verbose_name = 'Withdrawals'
 
+    def ready(self):
+        import apps.withdrawals.signals
+

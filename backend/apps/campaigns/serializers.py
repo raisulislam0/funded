@@ -49,7 +49,7 @@ class CampaignListSerializer(serializers.ModelSerializer):
 
 class CampaignDetailSerializer(serializers.ModelSerializer):
     """Serializer for campaign detail view."""
-    
+
     category = CategorySerializer(read_only=True)
     creator_name = serializers.CharField(source='creator.full_name', read_only=True)
     creator_avatar = serializers.URLField(source='creator.avatar', read_only=True)
@@ -57,13 +57,16 @@ class CampaignDetailSerializer(serializers.ModelSerializer):
     images = CampaignImageSerializer(many=True, read_only=True)
     progress_percentage = serializers.FloatField(read_only=True)
     days_remaining = serializers.IntegerField(read_only=True)
-    
+    net_amount = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    available_balance = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+
     class Meta:
         model = Campaign
         fields = [
             'id', 'title', 'slug', 'category', 'creator_name', 'creator_avatar',
             'short_description', 'description', 'cover_image', 'video_url',
-            'goal_amount', 'current_amount', 'currency', 'progress_percentage',
+            'goal_amount', 'current_amount', 'net_amount', 'withdrawn_amount',
+            'available_balance', 'currency', 'progress_percentage',
             'start_date', 'end_date', 'days_remaining', 'status', 'is_featured',
             'total_donors', 'total_donations', 'location', 'district',
             'documents', 'images', 'created_at', 'updated_at'

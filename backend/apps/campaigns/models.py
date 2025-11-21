@@ -58,6 +58,7 @@ class Campaign(TimeStampedModel):
     # Funding
     goal_amount = models.DecimalField(max_digits=12, decimal_places=2)
     current_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    withdrawn_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     currency = models.CharField(max_length=3, default='BDT')
     
     # Timeline
@@ -97,6 +98,16 @@ class Campaign(TimeStampedModel):
             models.Index(fields=['category', 'status']),
             models.Index(fields=['slug']),
         ]
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(withdrawn_amount__gte=0),
+                name='withdrawn_amount_non_negative'
+            ),
+            models.CheckConstraint(
+                check=models.Q(withdrawn_amount__lte=models.F('current_amount')),
+                name='withdrawn_amount_lte_current_amount'
+            ),
+        ]
     
     def __str__(self):
         return self.title
@@ -124,6 +135,59 @@ class Campaign(TimeStampedModel):
             delta = self.end_date - timezone.now()
             return delta.days
         return 0
+
+    @property
+    def available_balance(self):
+        """
+        Calculate available balance for withdrawal.
+        This is the amount that can still be withdrawn.
+
+        Important: This is calculated from net_amount (after platform fees),
+        not current_amount (gross donations).
+        """
+        from decimal import Decimal
+        return max(Decimal('0'), self.net_amount - self.withdrawn_amount)
+
+    @property
+    def net_amount(self):
+        """
+        Calculate net amount after platform fees.
+        Platform fee is deducted from donations, so this shows
+        the actual amount available to the campaign creator.
+        """
+        from apps.donations.models import Donation
+        from decimal import Decimal
+
+        # Sum up net_amount from all completed donations
+        completed_donations = self.donations.filter(status='completed')
+        total_net = completed_donations.aggregate(
+            total=models.Sum('net_amount')
+        )['total'] or Decimal('0')
+
+        return total_net
+
+    def can_withdraw(self, amount):
+        """
+        Check if a withdrawal amount is valid.
+
+        Args:
+            amount: Decimal amount to withdraw
+
+        Returns:
+            tuple: (bool, str) - (is_valid, error_message)
+        """
+        from decimal import Decimal
+
+        if amount <= 0:
+            return False, "Withdrawal amount must be greater than 0"
+
+        # Check against net amount (after platform fees)
+        net_available = self.net_amount - self.withdrawn_amount
+
+        if amount > net_available:
+            return False, f"Insufficient balance. Available: {net_available} BDT"
+
+        return True, ""
 
 
 class CampaignDocument(TimeStampedModel):
